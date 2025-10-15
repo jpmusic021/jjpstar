@@ -282,75 +282,38 @@
 
     </div>
 
-    <script>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDge0o0osrFIuZ_2UCXHgWHNb8FHTjZYlA",
+            authDomain: "jayujpmusic021.firebaseapp.com",
+            projectId: "jayujpmusic021",
+            storageBucket: "jayujpmusic021.firebasestorage.app",
+            messagingSenderId: "221003116171",
+            appId: "1:221003116171:web:32f9632dd1e05ffba22e8e",
+            measurementId: "G-QZEHPRQLEX"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
+        
+        // Firestore collection reference
+        const musicCollection = collection(db, 'music');
+
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
 
             // --- DATA ---
             const categories = ["Hip Hop", "Mashup", "Gujarati", "Chillout", "Hindi", "EDM", "Dance", "Pop", "Rock"];
-            
-            let musicData = [
-                {
-                    id: 1,
-                    title: "Dil Diyan Gallan",
-                    singer: "Atif Aslam",
-                    youtubeId: "SAcpESN_Fk4",
-                    gdriveLink: "#",
-                    thumbnail: "https://i.ytimg.com/vi/SAcpESN_Fk4/hqdefault.jpg",
-                    description: "Presenting the full video song 'Dil Diyan Gallan' from the movie 'Tiger Zinda Hai'. A Salman Khan, Katrina Kaif starrer, with music composed by Vishal and Shekhar and voiced by Atif Aslam.",
-                    category: "Hindi",
-                },
-                {
-                    id: 2,
-                    title: "Believer",
-                    singer: "Imagine Dragons",
-                    youtubeId: "7wtfhZwyrcc",
-                    gdriveLink: "#",
-                    thumbnail: "https://i.ytimg.com/vi/7wtfhZwyrcc/hqdefault.jpg",
-                    description: "Listen to 'Believer', the first single from our new album ƎVOLVE. Directed by Matt Eastin.",
-                    category: "Rock",
-                },
-                {
-                    id: 3,
-                    title: "Vaaste",
-                    singer: "Dhvani Bhanushali",
-                    youtubeId: "BBAyRBTfsOU",
-                    gdriveLink: "#",
-                    thumbnail: "https://i.ytimg.com/vi/BBAyRBTfsOU/hqdefault.jpg",
-                    description: "Gulshan Kumar Presents Bhushan Kumar's 'Vaaste'. Sung by Dhvani Bhanushali & Nikhil D'Souza. Composed by Tanishk Bagchi, the lyrics are penned by Arafat Mehmood.",
-                    category: "Pop",
-                },
-                {
-                    id: 4,
-                    title: "Guli Mata",
-                    singer: "Saad Lamjarred & Shreya Ghoshal",
-                    youtubeId: "s7q_8n2i9-M",
-                    gdriveLink: "#",
-                    thumbnail: "https://i.ytimg.com/vi/s7q_8n2i9-M/hqdefault.jpg",
-                    description: "The much awaited Moroccan-Indian collaboration is here. Anshul Garg presents Guli Mata by the very talented Saad Lamjarred & Shreya Ghoshal.",
-                    category: "Mashup",
-                },
-                 {
-                    id: 5,
-                    title: "Lean On",
-                    singer: "Major Lazer & DJ Snake",
-                    youtubeId: "YqeW9_5kURI",
-                    gdriveLink: "#",
-                    thumbnail: "https://i.ytimg.com/vi/YqeW9_5kURI/hqdefault.jpg",
-                    description: "Official music video for Major Lazer & DJ Snake's 'Lean On' featuring MØ. This is one of the most iconic EDM tracks of the decade.",
-                    category: "EDM",
-                },
-                {
-                    id: 6,
-                    title: "Tarak Mehta",
-                    singer: "Various Artists",
-                    youtubeId: "1pA_D74U3aE",
-                    gdriveLink: "#",
-                    thumbnail: "https://i.ytimg.com/vi/1pA_D74U3aE/hqdefault.jpg",
-                    description: "Enjoy the title track of the famous Gujarati show Tarak Mehta Ka Ooltah Chashmah.",
-                    category: "Gujarati",
-                }
-            ];
+            let musicData = []; // This will be populated from Firestore
             
             // --- DOM ELEMENTS ---
             const pages = document.querySelectorAll('.page');
@@ -408,7 +371,7 @@
                 musicGrid.innerHTML = '';
                 pageTitle.textContent = title;
                 if(data.length === 0){
-                    musicGrid.innerHTML = `<p class="col-span-full text-center text-gray-400">No music found.</p>`;
+                    musicGrid.innerHTML = `<p class="col-span-full text-center text-gray-400">No music found. Add some from the Admin Panel.</p>`;
                     return;
                 }
                 data.forEach(music => {
@@ -511,6 +474,10 @@
             const renderAdminList = () => {
                 const listContainer = document.getElementById('admin-music-list');
                 listContainer.innerHTML = '';
+                if (musicData.length === 0) {
+                     listContainer.innerHTML = '<p class="text-center text-gray-400">No music to manage yet.</p>';
+                     return;
+                }
                 musicData.forEach(music => {
                     const item = document.createElement('div');
                     item.className = 'flex items-center justify-between bg-gray-700 p-3 rounded-md';
@@ -552,13 +519,18 @@
                 });
 
                 document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                    btn.addEventListener('click', async (e) => {
                          if(confirm('Are you sure you want to delete this item?')){
                             const id = e.currentTarget.dataset.id;
-                            musicData = musicData.filter(m => m.id != id);
-                            renderAdminList();
-                            renderMusicGrid(musicData); // Update home page as well
-                            showToast('Item deleted successfully!');
+                            const musicDocRef = doc(db, 'music', id);
+                            try {
+                                await deleteDoc(musicDocRef);
+                                showToast('Item deleted successfully!');
+                                // onSnapshot will auto-update the UI
+                            } catch (error) {
+                                console.error("Error deleting document: ", error);
+                                showToast("Error deleting item.");
+                            }
                          }
                     });
                 });
@@ -589,7 +561,6 @@
                     e.preventDefault();
                     const pageId = e.currentTarget.dataset.page;
                     if(pageId === 'home') {
-                        renderMusicGrid(musicData);
                         showPage('home-page');
                     } else if (pageId === 'adminLogin') {
                         if (isAdminLoggedIn) showPage('admin-panel-page');
@@ -607,18 +578,18 @@
                 const password = document.getElementById('password').value;
                 if (password === 'jayu143') {
                     isAdminLoggedIn = true;
-                    renderAdminList();
                     showPage('admin-panel-page');
+                    renderAdminList(); // Render list after login
                     document.getElementById('login-error').classList.add('hidden');
                 } else {
                     document.getElementById('login-error').classList.remove('hidden');
                 }
             });
             
-            musicForm.addEventListener('submit', (e) => {
+            musicForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const editId = document.getElementById('edit-id').value;
-                const newMusic = {
+                const musicDetails = {
                     title: document.getElementById('title').value,
                     singer: document.getElementById('singer').value,
                     youtubeId: extractYouTubeID(document.getElementById('youtubeId').value),
@@ -628,21 +599,23 @@
                     category: document.getElementById('category').value,
                 };
 
-                if(editId){
-                    // Update existing
-                    const index = musicData.findIndex(m => m.id == editId);
-                    musicData[index] = {...musicData[index], ...newMusic};
-                    showToast('Music updated successfully!');
-                } else {
-                    // Add new
-                    newMusic.id = Date.now(); // Simple unique ID
-                    musicData.unshift(newMusic);
-                    showToast('Music added successfully!');
+                try {
+                    if(editId){
+                        // Update existing
+                        const musicDocRef = doc(db, 'music', editId);
+                        await updateDoc(musicDocRef, musicDetails);
+                        showToast('Music updated successfully!');
+                    } else {
+                        // Add new
+                        await addDoc(musicCollection, { ...musicDetails, createdAt: serverTimestamp() });
+                        showToast('Music added successfully!');
+                    }
+                    resetForm();
+                    // onSnapshot will handle the UI update automatically
+                } catch (error) {
+                    console.error("Error saving document: ", error);
+                    showToast("Error saving music.");
                 }
-                
-                resetForm();
-                renderAdminList();
-                renderMusicGrid(musicData); // Refresh home page
             });
             
             document.getElementById('cancel-btn').addEventListener('click', resetForm);
@@ -671,12 +644,22 @@
                     slides[currentSlide].classList.remove('active');
                     currentSlide = (currentSlide + 1) % slides.length;
                     slides[currentSlide].classList.add('active');
-                }, 4500); // Changed timing
+                }, 4500);
             };
 
             // --- INITIALIZATION ---
+            
+            // Real-time listener for music data from Firestore
+            const q = query(musicCollection, orderBy('createdAt', 'desc'));
+            onSnapshot(q, (snapshot) => {
+                musicData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMusicGrid(musicData); // Initial render
+                if(isAdminLoggedIn) {
+                    renderAdminList(); // Update admin list if open
+                }
+            });
+
             heroSlider();
-            renderMusicGrid(musicData);
             populateCategories();
             showPage('home-page');
         });
