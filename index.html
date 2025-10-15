@@ -8,6 +8,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QZEHPRQLEX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      
+      // Default consent state
+      gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'analytics_storage': 'denied'
+      });
+      
+      gtag('js', new Date());
+      gtag('config', 'G-QZEHPRQLEX');
+
+      // Function to grant all consent
+      function allConsentGranted() {
+        gtag('consent', 'update', {
+          'ad_user_data': 'granted',
+          'ad_personalization': 'granted',
+          'ad_storage': 'granted',
+          'analytics_storage': 'granted'
+        });
+      }
+    </script>
+
     <style>
         :root {
             --primary-color: #e50914; /* Netflix Red-like color for branding */
@@ -281,6 +310,18 @@
         </div>
 
     </div>
+    
+    <!-- Consent Banner -->
+    <div id="consent-banner" class="fixed bottom-0 inset-x-0 bg-surface-color bg-opacity-90 backdrop-blur-sm p-4 text-white z-50 hidden">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <p class="text-sm text-gray-300">We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.</p>
+            <div class="flex items-center gap-4 flex-shrink-0">
+                <button id="accept-consent" class="btn-primary text-white font-bold py-2 px-5 rounded-md text-sm">Accept</button>
+                <button id="decline-consent" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-5 rounded-md text-sm">Decline</button>
+            </div>
+        </div>
+    </div>
+
 
     <script type="module">
         // Import Firebase modules
@@ -646,6 +687,28 @@
                     slides[currentSlide].classList.add('active');
                 }, 4500);
             };
+
+            // --- CONSENT BANNER LOGIC ---
+            const consentBanner = document.getElementById('consent-banner');
+            const acceptBtn = document.getElementById('accept-consent');
+            const declineBtn = document.getElementById('decline-consent');
+
+            if (!localStorage.getItem('consentGiven')) {
+                consentBanner.classList.remove('hidden');
+            }
+
+            acceptBtn.addEventListener('click', () => {
+                allConsentGranted(); // This function is in the head script tag
+                localStorage.setItem('consentGiven', 'true');
+                consentBanner.classList.add('hidden');
+                showToast("Thank you for accepting!");
+            });
+
+            declineBtn.addEventListener('click', () => {
+                localStorage.setItem('consentGiven', 'false');
+                consentBanner.classList.add('hidden');
+            });
+
 
             // --- INITIALIZATION ---
             
